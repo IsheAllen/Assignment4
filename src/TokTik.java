@@ -1,0 +1,211 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.sql.SQLOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Scanner;
+
+public class TokTik {
+
+    private BinarySearchTree binarySearchTree;
+
+    public TokTik() {
+        binarySearchTree = new BinarySearchTree();
+    }
+
+    public void run() {
+        try (Scanner input = new Scanner(System.in)) {
+            int choice;
+
+            do {
+                System.out.print("\nChoose an action from the menu:\n");
+                System.out.print("1. Find the profile description for a given account\n");
+                System.out.print("2. List all accounts\n");
+                System.out.print("3. Create an account\n");
+                System.out.print("4. Delete an account\n");
+                System.out.print("5. Delete all posts for a single account\n");
+                System.out.print("6. Add a new post for an account\n");
+                System.out.print("7. Load a file of actions from disk and process this\n");
+                System.out.print("8. Post with most likes for a given account\n");
+                System.out.print("9. Exit\n");
+
+                choice = input.nextInt();
+
+                switch (choice) {
+                    case 1:
+                        findProfileDescription(input);
+                        break;
+                    case 2:
+                        listAllAccounts();
+                        break;
+                    case 3:
+                        createAccount(input);
+                        break;
+                    case 4:
+                        deleteAccount(input);
+                        break;
+                    case 5:
+                        deleteAllPostsForAccount(input);
+                        break;
+                    case 6:
+                        addNewPostForAccount(input);
+                        break;
+                    case 7:
+                        loadFileOfActionsFromDisk(input);
+                        break;
+                    case 8:
+                        findPostWithMostLikesForAccount(input);
+                        break;
+                    case 9:
+                        System.out.println("Exiting...");
+                        break;
+                    default:
+                        System.out.println("Invalid choice. Please try again.");
+                        break;
+                }
+            } while (choice != 9);
+        }
+    }
+
+    private void findProfileDescription(Scanner input) {
+        System.out.print("Enter the username of the account: ");
+        String username = input.next();
+
+        Account account = binarySearchTree.search(username);
+        if (account == null) {
+            System.out.println("No account found with username: " + username);
+        } else {
+            System.out.println("Account description for username " + username + ": " + account.accountDescription);
+        }
+    }
+
+    private void findPostWithMostLikesForAccount(Scanner input) {
+        System.out.print("Enter the username of the account: ");
+        String username = input.next();
+
+        Account account = binarySearchTree.search(username);
+        if (account == null) {
+            System.out.println("No account found with username: " + username);
+        } else {
+            Post postWithMostLikes = account.getPostWithMostLikes();
+            if (postWithMostLikes == null) {
+                System.out.println("No posts found for account " + username);
+            } else {
+                System.out.println("Post with most likes for account " + username + ":");
+                System.out.println(postWithMostLikes);
+            }
+        }
+    }
+    private void addNewPostForAccount(Scanner input) {
+        System.out.print("Enter the username of the account to add the post to: ");
+        String username = input.next();
+
+        Account account = binarySearchTree.search(username);
+        if (account == null) {
+            System.out.println("No account found with username: " + username);
+        } else {
+            System.out.print("Enter the video name: ");
+            String videoName = input.next();
+
+            System.out.print("Enter the number of likes: ");
+            int numLikes = input.nextInt();
+            input.nextLine(); // consume the newline character
+
+            System.out.print("Enter the post description: ");
+            String postDescription = input.nextLine();
+
+            Post post = new Post(videoName, numLikes, postDescription);
+            account.addPost(post);
+
+            System.out.println("Post added.");
+        }
+    }
+
+    private void listAllAccounts() {
+        System.out.println("List of all accounts:");
+        binarySearchTree.listAccounts();
+    }
+
+    private void createAccount(Scanner input) {
+        System.out.print("Enter a username for the new account: ");
+        String username = input.next();
+        input.nextLine(); // consume the newline character
+
+        System.out.print("Enter a description for the new account: ");
+        String accountDescription = input.nextLine();
+
+        Account account = new Account(username, accountDescription);
+        binarySearchTree.insert(account);
+
+        System.out.println("Account created.");
+    }
+
+    private void deleteAccount(Scanner input) {
+        System.out.print("Enter the username of the account to delete: ");
+        String username = input.next();
+
+        Account account = binarySearchTree.search(username);
+        if (account == null) {
+            System.out.println("No account found with username: " + username);
+        } else {
+            binarySearchTree.delete(username);
+            System.out.println("Account deleted.");
+        }
+    }
+
+    private void deleteAllPostsForAccount(Scanner input) {
+        System.out.print("Enter the username of the account to delete all posts for: ");
+        String username = input.next();
+
+        Account account = binarySearchTree.search(username);
+        if (account == null) {
+            System.out.println("No account found with username: " + username);
+        } else {
+            account.posts.clear();
+            System.out.println("All posts for account " + username + " deleted.");
+        }
+    }
+        private void loadFileOfActionsFromDisk(Scanner input) {
+            System.out.print("Enter the name of the actions file: ");
+            String fileName = input.next();
+
+            try (Scanner fileScanner = new Scanner(new File(fileName))) {
+                while (fileScanner.hasNextLine()) {
+                    String line = fileScanner.nextLine();
+                    String[] words = line.split(" ");
+
+                    if (words[0].equals("Create")) {
+                        // create new account
+                        String username = words[1];
+                        String accountDescription = String.join(" ", Arrays.copyOfRange(words, 2, words.length));
+                        Account account = new Account(username, accountDescription);
+                        binarySearchTree.insert(account);
+                        System.out.println("Account created: " + account);
+                    } else if (words[0].equals("Add")) {
+                        // add new post for account
+                        String username = words[1];
+                        Account account = binarySearchTree.search(username);
+                        if (account == null) {
+                            System.out.println("No account found with username: " + username);
+                        } else {
+                            String videoName = words[2];
+                            int numLikes = Integer.parseInt(words[3]);
+                            String postDescription = String.join(" ", Arrays.copyOfRange(words, 4, words.length));
+                            Post post = new Post(videoName, numLikes, postDescription);
+                            account.addPost(post);
+                            System.out.println("New post added for account " + username + ": " + post);
+                        }
+                    } else {
+                        System.out.println("Invalid action in file: " + line);
+                    }
+                }
+            } catch (FileNotFoundException e) {
+                System.out.println("File not found: " + fileName);
+            }
+        }
+    public static void main(String[] args) {
+        TokTik tokTik = new TokTik();
+        tokTik.run();
+    }
+    }
